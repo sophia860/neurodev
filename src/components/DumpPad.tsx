@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Plus, Mic, Image as ImageIcon, Send } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { db, handleFirestoreError, OperationType, useAuth } from '../services/firebase';
-import { collection, doc, setDoc } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType, useAuth, collection, doc, setDoc } from '../services/firebase';
 
 export default function DumpPad() {
   const [content, setContent] = useState('');

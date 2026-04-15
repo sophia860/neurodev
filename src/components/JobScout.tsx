@@ -3,8 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Search, Sparkles, Briefcase, Clock, MapPin, PoundSterling, Check, X, ArrowRight } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Job } from '../types';
-import { db, useAuth, handleFirestoreError, OperationType } from '../services/firebase';
-import { collection, onSnapshot, query, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { db, useAuth, handleFirestoreError, OperationType, collection, onSnapshot, query, addDoc, doc, updateDoc, deleteDoc } from '../services/firebase';
 
 const SCOUT_JOBS: Omit<Job, 'id' | 'status'>[] = [
   {

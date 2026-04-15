@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, MoreHorizontal, Zap, Coffee, ArrowRight, Bookmark, Trash2, X } from 'lucide-react';
+import { Plus, MoveHorizontal as MoreHorizontal, Zap, Coffee, ArrowRight, Bookmark, Trash2, X } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Task, TaskTemplate } from '../types';
-import { db, handleFirestoreError, OperationType, useAuth } from '../services/firebase';
-import { collection, onSnapshot, query, orderBy, addDoc, doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType, useAuth, collection, onSnapshot, query, orderBy, addDoc, doc, updateDoc, deleteDoc, serverTimestamp } from '../services/firebase';
 
 interface Column {
   id: string;

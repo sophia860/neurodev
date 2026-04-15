@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Zap, Battery, BatteryLow, BatteryMedium, BatteryFull, TrendingUp } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { db, handleFirestoreError, OperationType, useAuth } from '../services/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType, useAuth, doc, updateDoc } from '../services/firebase';
 
 export default function EnergyTracker({ currentEnergy = 100 }: { currentEnergy?: number }) {
   const { user } = useAuth();

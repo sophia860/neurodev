@@ -4,8 +4,7 @@ import { Send, X, Sparkles, MessageCircle } from 'lucide-react';
 import { getFloResponse } from '../services/gemini';
 import { ChatMessage } from '../types';
 import { cn } from '../lib/utils';
-import { db, handleFirestoreError, OperationType, useAuth } from '../services/firebase';
-import { collection, addDoc, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType, useAuth, collection, addDoc, onSnapshot, query, orderBy, limit } from '../services/firebase';
 
 export default function Flo() {
   const [isOpen, setIsOpen] = useState(false);

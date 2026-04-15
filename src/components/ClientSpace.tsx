@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, MoreHorizontal, User, Mail, Phone, Calendar, ArrowRight, CheckCircle2, Clock, X } from 'lucide-react';
+import { Plus, MoveHorizontal as MoreHorizontal, User, Mail, Phone, Calendar, ArrowRight, CircleCheck as CheckCircle2, Clock, X } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Client } from '../types';
-import { db, useAuth, handleFirestoreError, OperationType } from '../services/firebase';
-import { collection, onSnapshot, query, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { db, useAuth, handleFirestoreError, OperationType, collection, onSnapshot, query, addDoc, doc, updateDoc, deleteDoc } from '../services/firebase';
 
 export default function ClientSpace() {
   const { user } = useAuth();

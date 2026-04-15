@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { PoundSterling, TrendingUp, Clock, CheckCircle2, AlertCircle, Plus, ArrowUpRight, Download, X } from 'lucide-react';
+import { PoundSterling, TrendingUp, Clock, CircleCheck as CheckCircle2, CircleAlert as AlertCircle, Plus, ArrowUpRight, Download, X } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Invoice } from '../types';
-import { db, useAuth, handleFirestoreError, OperationType } from '../services/firebase';
-import { collection, onSnapshot, query, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
+import { db, useAuth, handleFirestoreError, OperationType, collection, onSnapshot, query, addDoc, serverTimestamp, doc, updateDoc } from '../services/firebase';
 
 export default function IncomeTracker() {
   const { user } = useAuth();
