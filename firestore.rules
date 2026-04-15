@@ -1,0 +1,250 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId} (matches auth.uid)
+    // Fields:
+    //   - uid: string (required)
+    //   - email: string (required)
+    //   - displayName: string (optional)
+    //   - photoURL: string (optional)
+    //   - onboardingCompleted: bool (optional)
+    //   - energyLevel: number (optional, 0-100)
+    //   - lastCheckIn: string (optional, ISO 8601)
+    //
+    // Collection: tasks (subcollection of users)
+    // Document ID: {taskId}
+    // Fields:
+    //   - id: string (required)
+    //   - userId: string (required, matches parent)
+    //   - title: string (required, 1-200 chars)
+    //   - description: string (optional, 0-1000 chars)
+    //   - status: string (required, ['todo', 'doing', 'done'])
+    //   - energyRequired: string (required, ['low', 'medium', 'high'])
+    //   - createdAt: string (required, ISO 8601)
+    //   - completedAt: string (optional, ISO 8601)
+    //   - order: number (required)
+    //
+    // Collection: dump (subcollection of users)
+    // Document ID: {itemId}
+    // Fields:
+    //   - id: string (required)
+    //   - userId: string (required, matches parent)
+    //   - content: string (required, 1-5000 chars)
+    //   - type: string (required, ['text', 'voice', 'image'])
+    //   - createdAt: string (required, ISO 8601)
+    //   - processed: bool (required)
+    //
+    // Collection: invoices (subcollection of users)
+    // Document ID: {invoiceId}
+    // Fields:
+    //   - id: string (required)
+    //   - userId: string (required)
+    //   - clientName: string (required)
+    //   - amount: number (required)
+    //   - date: string (required, ISO 8601)
+    //   - status: string (required, ['pending', 'paid'])
+    //
+    // Collection: jobs (subcollection of users)
+    // Document ID: {jobId}
+    // Fields:
+    //   - id: string (required)
+    //   - userId: string (required)
+    //   - role: string (required)
+    //   - company: string (required)
+    //   - pay: string (optional)
+    //   - signals: list (optional)
+    //   - dayToDay: string (optional)
+    //   - need: list (optional)
+    //   - nice: list (optional)
+    //   - fit: string (optional)
+    //   - status: string (required, ['spotted', 'applied', 'heard', 'interview', 'offer'])
+    //
+    // Collection: clients (subcollection of users)
+    // Document ID: {clientId}
+    // Fields:
+    //   - id: string (required)
+    //   - userId: string (required)
+    //   - name: string (required)
+    //   - type: string (optional)
+    //   - rate: string (optional)
+    //   - status: string (required, ['active', 'pending', 'inactive'])
+    //   - color: string (optional)
+    //   - textColor: string (optional)
+    //   - initials: string (optional)
+    //   - createdAt: string (optional, ISO 8601)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "Submit@pagegalleryjournal.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidDateString(dateStr) {
+      return dateStr is string && dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return hasOnlyAllowedFields(['uid', 'email', 'displayName', 'photoURL', 'onboardingCompleted', 'energyLevel', 'lastCheckIn', 'role']) &&
+             data.uid == request.auth.uid &&
+             data.email is string && isValidEmail(data.email) &&
+             (!('energyLevel' in data) || (data.energyLevel is number && data.energyLevel >= 0 && data.energyLevel <= 100)) &&
+             (!('lastCheckIn' in data) || isValidDateString(data.lastCheckIn));
+    }
+
+    function isValidTask(data, userId) {
+      return hasOnlyAllowedFields(['id', 'userId', 'title', 'description', 'status', 'energyRequired', 'createdAt', 'completedAt', 'order']) &&
+             data.userId == userId &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 200 &&
+             (!('description' in data) || (data.description is string && data.description.size() <= 1000)) &&
+             data.status in ['todo', 'doing', 'done'] &&
+             data.energyRequired in ['low', 'medium', 'high'] &&
+             isValidDateString(data.createdAt) &&
+             (!('completedAt' in data) || isValidDateString(data.completedAt)) &&
+             data.order is number;
+    }
+
+    function isValidDumpItem(data, userId) {
+      return hasOnlyAllowedFields(['id', 'userId', 'content', 'type', 'createdAt', 'processed']) &&
+             data.userId == userId &&
+             data.content is string && data.content.size() >= 1 && data.content.size() <= 5000 &&
+             data.type in ['text', 'voice', 'image'] &&
+             isValidDateString(data.createdAt) &&
+             data.processed is bool;
+    }
+
+    function isValidChatMessage(data) {
+      return hasOnlyAllowedFields(['role', 'text', 'timestamp']) &&
+             data.role in ['user', 'model'] &&
+             data.text is string && data.text.size() >= 1 && data.text.size() <= 5000 &&
+             isValidDateString(data.timestamp);
+    }
+
+    function isValidInvoice(data, userId) {
+      return hasOnlyAllowedFields(['id', 'userId', 'clientName', 'amount', 'date', 'status']) &&
+             data.userId == userId &&
+             data.clientName is string && data.clientName.size() >= 1 && data.clientName.size() <= 200 &&
+             data.amount is number &&
+             isValidDateString(data.date) &&
+             data.status in ['pending', 'paid'];
+    }
+
+    function isValidJob(data, userId) {
+      return hasOnlyAllowedFields(['id', 'userId', 'role', 'company', 'pay', 'signals', 'dayToDay', 'need', 'nice', 'fit', 'status']) &&
+             data.userId == userId &&
+             data.role is string && data.role.size() >= 1 && data.role.size() <= 200 &&
+             data.company is string && data.company.size() >= 1 && data.company.size() <= 200 &&
+             (!('pay' in data) || data.pay is string) &&
+             (!('signals' in data) || data.signals is list) &&
+             (!('dayToDay' in data) || data.dayToDay is string) &&
+             (!('need' in data) || data.need is list) &&
+             (!('nice' in data) || data.nice is list) &&
+             (!('fit' in data) || data.fit is string) &&
+             data.status in ['spotted', 'applied', 'heard', 'interview', 'offer'];
+    }
+
+    function isValidClient(data, userId) {
+      return hasOnlyAllowedFields(['id', 'userId', 'name', 'type', 'rate', 'status', 'color', 'textColor', 'initials', 'createdAt']) &&
+             data.userId == userId &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 200 &&
+             (!('type' in data) || data.type is string) &&
+             (!('rate' in data) || data.rate is string) &&
+             data.status in ['active', 'pending', 'inactive'] &&
+             (!('color' in data) || data.color is string) &&
+             (!('textColor' in data) || data.textColor is string) &&
+             (!('initials' in data) || data.initials is string) &&
+             (!('createdAt' in data) || isValidDateString(data.createdAt));
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && 
+                      (request.resource.data.role == 'user' || isAdmin());
+      
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) && 
+                      (request.resource.data.role == resource.data.role || isAdmin());
+
+      match /tasks/{taskId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && isValidTask(request.resource.data, userId);
+        allow update: if isOwner(userId) && isValidTask(request.resource.data, userId);
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+
+      match /dump/{itemId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && isValidDumpItem(request.resource.data, userId);
+        allow update: if isOwner(userId) && isValidDumpItem(request.resource.data, userId);
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+
+      match /chats/{messageId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && isValidChatMessage(request.resource.data);
+      }
+
+      match /invoices/{invoiceId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && isValidInvoice(request.resource.data, userId);
+        allow update: if isOwner(userId) && isValidInvoice(request.resource.data, userId);
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+
+      match /jobs/{jobId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && isValidJob(request.resource.data, userId);
+        allow update: if isOwner(userId) && isValidJob(request.resource.data, userId);
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+
+      match /clients/{clientId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && isValidClient(request.resource.data, userId);
+        allow update: if isOwner(userId) && isValidClient(request.resource.data, userId);
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+    }
+
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

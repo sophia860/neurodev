@@ -1,0 +1,143 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Stores user preferences and onboarding state",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "onboardingCompleted": { "type": "boolean" },
+        "energyLevel": { "type": "number" },
+        "lastCheckIn": { "type": "string" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "A productivity task",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["todo", "doing", "done"] },
+        "energyRequired": { "type": "string", "enum": ["low", "medium", "high"] },
+        "createdAt": { "type": "string" },
+        "completedAt": { "type": "string" },
+        "order": { "type": "number" }
+      },
+      "required": ["id", "userId", "title", "status"]
+    },
+    "DumpItem": {
+      "title": "Dump Item",
+      "description": "A rapid capture brain dump",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "content": { "type": "string" },
+        "type": { "type": "string", "enum": ["text", "voice", "image"] },
+        "createdAt": { "type": "string" },
+        "processed": { "type": "boolean" }
+      },
+      "required": ["id", "userId", "content"]
+    },
+    "ChatMessage": {
+      "title": "Chat Message",
+      "description": "A message in the conversation with Flo",
+      "type": "object",
+      "properties": {
+        "role": { "type": "string", "enum": ["user", "model"] },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["role", "text", "timestamp"]
+    },
+    "Invoice": {
+      "title": "Invoice",
+      "description": "A financial invoice",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "clientName": { "type": "string" },
+        "amount": { "type": "number" },
+        "date": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "paid"] }
+      },
+      "required": ["id", "userId", "clientName", "amount", "date", "status"]
+    },
+    "Job": {
+      "title": "Job",
+      "description": "A job listing found by the scout",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "role": { "type": "string" },
+        "company": { "type": "string" },
+        "pay": { "type": "string" },
+        "signals": { "type": "array" },
+        "dayToDay": { "type": "string" },
+        "need": { "type": "array" },
+        "nice": { "type": "array" },
+        "fit": { "type": "string" },
+        "status": { "type": "string", "enum": ["spotted", "applied", "heard", "interview", "offer"] }
+      },
+      "required": ["id", "userId", "role", "company", "status"]
+    },
+    "Client": {
+      "title": "Client",
+      "description": "A client managed by the user",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "rate": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "pending", "inactive"] },
+        "color": { "type": "string" },
+        "textColor": { "type": "string" },
+        "initials": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "name", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile data"
+    },
+    "/users/{userId}/tasks/{taskId}": {
+      "schema": "Task",
+      "description": "User tasks"
+    },
+    "/users/{userId}/dump/{itemId}": {
+      "schema": "DumpItem",
+      "description": "User brain dump items"
+    },
+    "/users/{userId}/chats/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "User chat history with Flo"
+    },
+    "/users/{userId}/invoices/{invoiceId}": {
+      "schema": "Invoice",
+      "description": "User invoices"
+    },
+    "/users/{userId}/jobs/{jobId}": {
+      "schema": "Job",
+      "description": "User job pipeline"
+    },
+    "/users/{userId}/clients/{clientId}": {
+      "schema": "Client",
+      "description": "User clients"
+    }
+  }
+}
+
