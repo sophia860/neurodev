@@ -1,6 +1,10 @@
 import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY! });
+function getAI() {
+  const key = import.meta.env.VITE_GEMINI_API_KEY as string | undefined;
+  if (!key) throw new Error("VITE_GEMINI_API_KEY is not set. Add it to your .env file.");
+  return new GoogleGenAI({ apiKey: key });
+}
 
 export const floSystemInstruction = `
 you are flo. the ai guide inside neurodev — a community built for neurodivergent builders, creators, and indie earners on whop.
@@ -26,6 +30,7 @@ your goal:
 `;
 
 export async function getFloResponse(messages: { role: 'user' | 'model', text: string }[]) {
+  const ai = getAI();
   const response = await ai.models.generateContent({
     model: "gemini-2.5-pro-preview-06-05",
     contents: messages.map(m => ({ role: m.role, parts: [{ text: m.text }] })),
@@ -39,6 +44,7 @@ export async function getFloResponse(messages: { role: 'user' | 'model', text: s
 }
 
 export async function taskThaw(taskDescription: string) {
+  const ai = getAI();
   const response = await ai.models.generateContent({
     model: "gemini-2.0-flash-lite",
     contents: `break this task into the smallest possible first step for someone with task paralysis: "${taskDescription}"`,
@@ -57,6 +63,7 @@ export interface DayTask {
 }
 
 export async function parseDayPlan(description: string): Promise<DayTask[]> {
+  const ai = getAI();
   const response = await ai.models.generateContent({
     model: "gemini-2.0-flash-lite",
     contents: `Parse this day plan into a structured JSON array of tasks.
@@ -91,6 +98,7 @@ export interface WhopIdea {
 }
 
 export async function generateWhopIdeas(interests: string, skills: string, workStyle: string): Promise<WhopIdea[]> {
+  const ai = getAI();
   const prompt = `
 you are a whop business strategist who specialises in niche, low-competition community businesses for neurodivergent creators and builders.
 
