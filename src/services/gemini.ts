@@ -1,13 +1,13 @@
 import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY! });
 
 export const floSystemInstruction = `
-you are flo. a brilliant, organized friend who also has adhd and actually gets it.
-you are warm, perceptive, and unhurried. 
-you are built for the girl who needs money and has never felt seen by a productivity app.
+you are flo. the ai guide inside neurodev — a community built for neurodivergent builders, creators, and indie earners on whop.
+you are warm, perceptive, and unhurried.
+you are built for people whose brains work differently — adhd, autism, dyslexia, sensory processing differences, and all the in-between.
 you are warm, a little funny, and completely non-judgmental.
-you use her language, not productivity app language.
+you use plain, direct language. no hustle-bro energy. no toxic positivity.
 
 tone rules:
 - conversational copy always lowercase.
@@ -18,16 +18,16 @@ tone rules:
 - use "we" and "us" — you're in this together.
 
 your goal:
-- help her figure out what she can actually offer people.
-- help her find her first or second gig.
-- help her do the thing she said she'd do today.
-- catch her when she disappears for two weeks and comes back ashamed — welcome her back with zero guilt.
-- make her feel like her brain isn't broken.
+- help them figure out what they can actually offer people.
+- help them find their first or next whop business idea.
+- help them do the thing they said they'd do today.
+- catch them when they disappear for two weeks and come back ashamed — welcome them back with zero guilt.
+- make them feel like their brain isn't broken. it's just wired differently.
 `;
 
 export async function getFloResponse(messages: { role: 'user' | 'model', text: string }[]) {
   const response = await ai.models.generateContent({
-    model: "gemini-3.1-pro-preview",
+    model: "gemini-2.5-pro-preview-06-05",
     contents: messages.map(m => ({ role: m.role, parts: [{ text: m.text }] })),
     config: {
       systemInstruction: floSystemInstruction,
@@ -40,7 +40,7 @@ export async function getFloResponse(messages: { role: 'user' | 'model', text: s
 
 export async function taskThaw(taskDescription: string) {
   const response = await ai.models.generateContent({
-    model: "gemini-3.1-flash-lite-preview",
+    model: "gemini-2.0-flash-lite",
     contents: `break this task into the smallest possible first step for someone with task paralysis: "${taskDescription}"`,
     config: {
       systemInstruction: "you are flo. your goal is to break task paralysis. provide ONE tiny, non-intimidating first step. lowercase only. under 15 words.",
@@ -51,34 +51,82 @@ export async function taskThaw(taskDescription: string) {
 
 export interface DayTask {
   label: string;
-  start: string; // HH:mm
-  end: string;   // HH:mm
+  start: string;
+  end: string;
   type: 'focus' | 'admin' | 'rest' | 'meeting' | 'social';
 }
 
 export async function parseDayPlan(description: string): Promise<DayTask[]> {
   const response = await ai.models.generateContent({
-    model: "gemini-3.1-flash-lite-preview",
-    contents: `Parse this day plan into a structured JSON array of tasks. 
+    model: "gemini-2.0-flash-lite",
+    contents: `Parse this day plan into a structured JSON array of tasks.
     Description: "${description}"
-    
+
     Return ONLY a JSON array of objects with these fields:
     - label: string (lowercase)
     - start: string (HH:mm format)
     - end: string (HH:mm format)
     - type: one of ['focus', 'admin', 'rest', 'meeting', 'social']
-    
+
     If times aren't specified, estimate reasonable durations starting from 09:00.`,
     config: {
       systemInstruction: "you are a precise parser. return ONLY valid JSON. no markdown blocks. no extra text.",
       responseMimeType: "application/json"
     }
   });
-  
+
   try {
     return JSON.parse(response.text || '[]');
   } catch (e) {
     console.error('Failed to parse day plan:', e);
+    return [];
+  }
+}
+
+export interface WhopIdea {
+  concept: string;
+  whyUnderserved: string;
+  whatToCharge: string;
+  firstThreeSteps: string[];
+}
+
+export async function generateWhopIdeas(interests: string, skills: string, workStyle: string): Promise<WhopIdea[]> {
+  const prompt = `
+you are a whop business strategist who specialises in niche, low-competition community businesses for neurodivergent creators and builders.
+
+the user has told you:
+- interests: ${interests}
+- skills: ${skills}
+- how they like to work: ${workStyle}
+
+generate exactly 3 specific, low-competition whop business ideas tailored to this person.
+
+AVOID these saturated categories: trading signals, fitness plans, reselling, generic dropshipping, social media growth hacks.
+FAVOUR: niche interest-led communities, async-friendly businesses, knowledge-based groups, micro-communities, tool stacks, creator resources, accountability spaces.
+
+return ONLY a JSON array of exactly 3 objects with these fields:
+- concept: string (one-line concept, lowercase, max 20 words)
+- whyUnderserved: string (why this niche is underserved, 1-2 sentences, lowercase, warm tone)
+- whatToCharge: string (specific pricing suggestion with reasoning, e.g. "$15/month — low barrier, high retention for niche communities")
+- firstThreeSteps: array of exactly 3 strings (concrete, actionable first steps, lowercase, numbered by sequence)
+
+tone: warm, lowercase, direct. no hustle energy. make each idea feel genuinely doable for one person.
+`;
+
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-pro-preview-06-05",
+    contents: prompt,
+    config: {
+      systemInstruction: "you are a precise business strategist. return ONLY valid JSON array. no markdown blocks. no extra text.",
+      responseMimeType: "application/json",
+      thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
+    }
+  });
+
+  try {
+    return JSON.parse(response.text || '[]');
+  } catch (e) {
+    console.error('Failed to parse whop ideas:', e);
     return [];
   }
 }

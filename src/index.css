@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,700;1,400&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,400&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -6,15 +6,23 @@
   --font-display: "Playfair Display", serif;
   --font-mono: "Space Mono", monospace;
 
-  --color-dusty-blush: #F2E0DC;
-  --color-warm-cream: #FAF6F0;
-  --color-sage-mist: #DDE8DF;
-  --color-lavender-grey: #E4E0ED;
-  --color-deep-plum: #3D2B3D;
-  --color-forest-green: #2C3E2D;
-  --color-terracotta: #C17A5A;
-  --color-dark-text: #2A2420;
+  /* neurodev editorial palette — calm, focused, no hustle */
+  --color-warm-cream: #F7F4EF;
+  --color-dusty-blush: #EDD8D0;
+  --color-sage-mist: #D8E8DA;
+  --color-slate-mist: #E2E6EC;
+  --color-deep-slate: #1E2C3A;
+  --color-ocean-teal: #2A7A72;
+  --color-stone: #8C8580;
+  --color-amber-warm: #C17A3A;
+  --color-dark-text: #1A1917;
   --color-soft-grey: #6B6560;
+
+  /* Legacy aliases for compatibility */
+  --color-deep-plum: #1E2C3A;
+  --color-forest-green: #2A7A72;
+  --color-terracotta: #C17A3A;
+  --color-lavender-grey: #E2E6EC;
 
   --color-background: var(--color-warm-cream);
   --color-foreground: var(--color-dark-text);
@@ -25,34 +33,46 @@
     @apply bg-background text-foreground font-sans antialiased overflow-x-hidden;
     cursor: none;
   }
-  
+
   h1, h2, h3, h4, h5, h6 {
     @apply font-display;
   }
 }
 
 @layer components {
+  .nd-card {
+    @apply bg-white/70 backdrop-blur-xl border border-white/50 rounded-3xl shadow-[0_4px_24px_rgba(0,0,0,0.04)] transition-all duration-500;
+  }
+
   .florr-card {
-    @apply bg-white/60 backdrop-blur-xl border border-white/40 rounded-[40px] shadow-[0_8px_32px_rgba(0,0,0,0.03)] transition-all duration-500;
+    @apply bg-white/70 backdrop-blur-xl border border-white/50 rounded-3xl shadow-[0_4px_24px_rgba(0,0,0,0.04)] transition-all duration-500;
+  }
+
+  .nd-button {
+    @apply px-6 py-3 bg-deep-slate text-warm-cream rounded-2xl font-medium hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 shadow-lg shadow-deep-slate/10 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100;
   }
 
   .florr-button {
-    @apply px-6 py-3 bg-deep-plum text-warm-cream rounded-2xl font-medium hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 shadow-lg shadow-deep-plum/10 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply px-6 py-3 bg-deep-slate text-warm-cream rounded-2xl font-medium hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 shadow-lg shadow-deep-slate/10 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100;
+  }
+
+  .nd-input {
+    @apply bg-white/50 border border-black/8 rounded-2xl px-4 py-3 focus:ring-2 focus:ring-deep-slate/15 focus:outline-none transition-all placeholder:text-soft-grey/40;
   }
 
   .florr-input {
-    @apply bg-white/40 border-none rounded-2xl px-4 py-3 focus:ring-2 focus:ring-deep-plum/20 transition-all;
+    @apply bg-white/50 border border-black/8 rounded-2xl px-4 py-3 focus:ring-2 focus:ring-deep-slate/15 focus:outline-none transition-all placeholder:text-soft-grey/40;
   }
 
   .atmosphere-gradient {
-    background: 
-      radial-gradient(circle at 0% 0%, rgba(242, 224, 220, 0.4) 0%, transparent 50%),
-      radial-gradient(circle at 100% 100%, rgba(221, 232, 223, 0.4) 0%, transparent 50%),
-      radial-gradient(circle at 50% 50%, rgba(228, 224, 237, 0.2) 0%, transparent 100%);
+    background:
+      radial-gradient(circle at 0% 0%, rgba(237, 216, 208, 0.35) 0%, transparent 50%),
+      radial-gradient(circle at 100% 100%, rgba(216, 232, 218, 0.35) 0%, transparent 50%),
+      radial-gradient(circle at 50% 50%, rgba(226, 230, 236, 0.18) 0%, transparent 100%);
   }
 
   .glass-panel {
-    @apply bg-white/30 backdrop-blur-2xl border border-white/20 rounded-[40px];
+    @apply bg-white/25 backdrop-blur-2xl border border-white/20 rounded-3xl;
   }
 
   .mask-fade-bottom {
@@ -60,22 +80,44 @@
   }
 
   .grain {
-    @apply fixed inset-0 pointer-events-none z-[800] opacity-[0.035];
+    @apply fixed inset-0 pointer-events-none z-[800] opacity-[0.025];
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 
   .custom-cursor {
-    @apply fixed w-2.5 h-2.5 bg-terracotta rounded-full pointer-events-none z-[9999] -translate-x-1/2 -translate-y-1/2 transition-[width,height,background] duration-300 mix-blend-multiply;
+    @apply fixed w-2.5 h-2.5 bg-ocean-teal rounded-full pointer-events-none z-[9999] -translate-x-1/2 -translate-y-1/2 transition-[width,height,background] duration-300 mix-blend-multiply;
   }
 
   .custom-cursor.big {
     @apply w-10 h-10 bg-dusty-blush;
   }
+
+  /* Focus mode — clean readable layout */
+  .focus-mode-active {
+    font-feature-settings: "kern" 1;
+    word-spacing: 0.05em;
+  }
+
+  .focus-mode-active .staggered-text {
+    display: block !important;
+    text-align: left !important;
+    letter-spacing: 0 !important;
+  }
+
+  /* Today's One Thing highlight */
+  .one-thing-card {
+    @apply border-2 border-ocean-teal bg-ocean-teal/5 rounded-3xl;
+  }
+
+  /* Reassurance line */
+  .reassurance-line {
+    @apply text-[10px] font-mono text-soft-grey/50 uppercase tracking-widest select-none;
+  }
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
 }
 
 ::-webkit-scrollbar-track {
@@ -83,7 +125,7 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-deep-plum/10 rounded-full hover:bg-deep-plum/20 transition-colors;
+  @apply bg-deep-slate/10 rounded-full hover:bg-deep-slate/20 transition-colors;
 }
 
 /* GSAP Scroll Choreography Classes */
@@ -95,3 +137,35 @@
   @apply inline-block translate-y-[110%];
 }
 
+/* Ticker animation */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee {
+    animation-play-state: paused !important;
+  }
+
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .word-reveal {
+    transform: translateY(0) !important;
+    opacity: 1 !important;
+  }
+
+  .custom-cursor {
+    display: none;
+  }
+}
