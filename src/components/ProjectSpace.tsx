@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, MoveHorizontal as MoreHorizontal, Zap, Coffee, ArrowRight, Bookmark, Trash2, X } from 'lucide-react';
+import { Plus, Zap, Coffee, ArrowRight, Bookmark, Trash2, X, MoveHorizontal as MoreHorizontal } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Task, TaskTemplate } from '../types';
-import { db, handleFirestoreError, OperationType, useAuth, collection, onSnapshot, query, orderBy, addDoc, doc, updateDoc, deleteDoc, serverTimestamp } from '../services/firebase';
+import { db, handleFirestoreError, OperationType, useAuth, collection, onSnapshot, query, orderBy, addDoc, doc, updateDoc, deleteDoc } from '../services/firebase';
 
-interface Column {
-  id: string;
-  title: string;
-  tasks: Task[];
-}
+interface Column { id: string; title: string; tasks: Task[]; }
+
+const getEnergyIcon = (energy: string) => {
+  if (energy === 'low') return <Coffee className="w-3.5 h-3.5" style={{color:'var(--color-teal)'}} />;
+  if (energy === 'medium') return <Zap className="w-3.5 h-3.5" style={{color:'var(--color-warning)'}} />;
+  return <Zap className="w-3.5 h-3.5" style={{color:'var(--color-amber)'}} />;
+};
 
 export default function ProjectSpace() {
   const { user } = useAuth();
@@ -22,243 +24,179 @@ export default function ProjectSpace() {
 
   useEffect(() => {
     if (!user) return;
-
     const tasksPath = `users/${user.uid}/tasks`;
-    const tasksQuery = query(collection(db, tasksPath), orderBy('order', 'asc'));
-
-    const unsubscribeTasks = onSnapshot(tasksQuery, (snapshot) => {
-      const taskList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Task));
-      setTasks(taskList);
+    const unsub1 = onSnapshot(query(collection(db, tasksPath), orderBy('order', 'asc')), (snapshot) => {
+      setTasks(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Task)));
       setLoading(false);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, tasksPath);
-    });
+    }, (e) => handleFirestoreError(e, OperationType.LIST, tasksPath));
 
     const templatesPath = `users/${user.uid}/templates`;
-    const templatesQuery = query(collection(db, templatesPath), orderBy('createdAt', 'desc'));
+    const unsub2 = onSnapshot(query(collection(db, templatesPath), orderBy('createdAt', 'desc')), (snapshot) => {
+      setTemplates(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as TaskTemplate)));
+    }, (e) => handleFirestoreError(e, OperationType.LIST, templatesPath));
 
-    const unsubscribeTemplates = onSnapshot(templatesQuery, (snapshot) => {
-      const templateList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TaskTemplate));
-      setTemplates(templateList);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, templatesPath);
-    });
-
-    return () => {
-      unsubscribeTasks();
-      unsubscribeTemplates();
-    };
+    return () => { unsub1(); unsub2(); };
   }, [user]);
 
-  const filteredTasks = energyFilter 
-    ? tasks.filter(t => t.energyRequired === energyFilter)
-    : tasks;
-
+  const filtered = energyFilter ? tasks.filter(t => t.energyRequired === energyFilter) : tasks;
   const columns: Column[] = [
-    { id: 'todo', title: 'to do', tasks: filteredTasks.filter(t => t.status === 'todo') },
-    { id: 'doing', title: 'doing', tasks: filteredTasks.filter(t => t.status === 'doing') },
-    { id: 'done', title: 'done', tasks: filteredTasks.filter(t => t.status === 'done') },
+    { id: 'todo', title: 'to do', tasks: filtered.filter(t => t.status === 'todo') },
+    { id: 'doing', title: 'doing', tasks: filtered.filter(t => t.status === 'doing') },
+    { id: 'done', title: 'done', tasks: filtered.filter(t => t.status === 'done') },
   ];
-
-  const getEnergyIcon = (energy: string) => {
-    switch (energy) {
-      case 'low': return <Coffee className="w-4 h-4 text-forest-green" />;
-      case 'medium': return <Zap className="w-4 h-4 text-terracotta" />;
-      case 'high': return <Zap className="w-4 h-4 text-deep-plum fill-deep-plum" />;
-      default: return null;
-    }
-  };
 
   const addTask = async (status: string, template?: TaskTemplate) => {
     if (!user) return;
     const path = `users/${user.uid}/tasks`;
     try {
       await addDoc(collection(db, path), {
-        userId: user.uid,
-        title: template?.title || 'new task',
-        description: template?.description || '',
-        status: status,
+        userId: user.uid, title: template?.title || 'new task',
+        description: template?.description || '', status,
         energyRequired: template?.energyRequired || 'medium',
-        createdAt: new Date().toISOString(),
-        order: tasks.length
+        createdAt: new Date().toISOString(), order: tasks.length
       });
       setShowTemplatePicker(null);
-    } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, path);
-    }
+    } catch (e) { handleFirestoreError(e, OperationType.CREATE, path); }
   };
 
   const saveAsTemplate = async (task: Task) => {
     if (!user) return;
     const path = `users/${user.uid}/templates`;
     try {
-      await addDoc(collection(db, path), {
-        userId: user.uid,
-        title: task.title,
-        description: task.description || '',
-        energyRequired: task.energyRequired,
-        createdAt: new Date().toISOString()
-      });
+      await addDoc(collection(db, path), { userId: user.uid, title: task.title, description: task.description || '', energyRequired: task.energyRequired, createdAt: new Date().toISOString() });
       setActiveMenu(null);
-    } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, path);
-    }
+    } catch (e) { handleFirestoreError(e, OperationType.CREATE, path); }
   };
 
-  const deleteTemplate = async (templateId: string) => {
+  const deleteTask = async (id: string) => {
     if (!user) return;
-    const path = `users/${user.uid}/templates/${templateId}`;
-    try {
-      await deleteDoc(doc(db, path));
-    } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, path);
-    }
+    const path = `users/${user.uid}/tasks/${id}`;
+    try { await deleteDoc(doc(db, path)); setActiveMenu(null); }
+    catch (e) { handleFirestoreError(e, OperationType.DELETE, path); }
   };
 
-  const deleteTask = async (taskId: string) => {
+  const deleteTemplate = async (id: string) => {
     if (!user) return;
-    const path = `users/${user.uid}/tasks/${taskId}`;
-    try {
-      await deleteDoc(doc(db, path));
-      setActiveMenu(null);
-    } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, path);
-    }
+    try { await deleteDoc(doc(db, `users/${user.uid}/templates/${id}`)); }
+    catch (e) { handleFirestoreError(e, OperationType.DELETE, `users/${user.uid}/templates/${id}`); }
   };
 
-  const updateTaskStatus = async (taskId: string, newStatus: string) => {
+  const updateStatus = async (id: string, status: string) => {
     if (!user) return;
-    const path = `users/${user.uid}/tasks/${taskId}`;
-    try {
-      await updateDoc(doc(db, path), { status: newStatus });
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, path);
-    }
+    const path = `users/${user.uid}/tasks/${id}`;
+    try { await updateDoc(doc(db, path), { status }); }
+    catch (e) { handleFirestoreError(e, OperationType.UPDATE, path); }
   };
 
   if (loading) return (
     <div className="h-full flex items-center justify-center">
-      <motion.div animate={{ opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 2 }} className="text-soft-grey italic">
-        loading your projects...
-      </motion.div>
+      <p className="text-soft-grey font-display italic font-light text-sm">loading your projects...</p>
     </div>
   );
 
   return (
-    <div className="h-full flex flex-col space-y-8 relative">
-      <div className="flex items-end justify-between">
-        <div className="space-y-2">
-          <h2 className="text-6xl font-display font-bold text-deep-plum tracking-tighter">project space</h2>
-          <p className="text-soft-grey italic text-lg font-display">organize your chaos at your own pace.</p>
+    <div className="h-full flex flex-col pb-8">
+      <div className="flex items-end justify-between mb-8">
+        <div>
+          <h2 className="font-display font-light text-4xl text-ink mb-1.5">project space.</h2>
+          <p className="text-soft-grey italic font-display font-light">organize your chaos at your own pace.</p>
         </div>
-        
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2 bg-black/5 p-1 rounded-2xl">
-            {['low', 'medium', 'high'].map(level => (
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 p-1 rounded-xl border border-border/60" style={{background:'rgba(255,255,255,0.4)'}}>
+            {['low', 'medium', 'high'].map(lvl => (
               <button
-                key={level}
-                onClick={() => setEnergyFilter(energyFilter === level ? null : level)}
+                key={lvl}
+                onClick={() => setEnergyFilter(energyFilter === lvl ? null : lvl)}
                 className={cn(
-                  "px-4 py-2 rounded-xl text-[10px] font-bold transition-all flex items-center gap-2 font-mono uppercase tracking-widest",
-                  energyFilter === level ? "bg-white text-deep-plum shadow-md" : "text-soft-grey hover:text-deep-plum"
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                  energyFilter === lvl ? "bg-ink text-canvas shadow-sm" : "text-soft-grey hover:text-ink hover:bg-black/5"
                 )}
               >
-                {getEnergyIcon(level)}
-                {level}
+                {getEnergyIcon(lvl)}
+                {lvl}
               </button>
             ))}
           </div>
-          <button onClick={() => setShowTemplatePicker({ status: 'todo' })} className="florr-button flex items-center gap-2">
-            <Plus className="w-5 h-5" />
-            <span>new task</span>
+          <button onClick={() => setShowTemplatePicker({ status: 'todo' })} className="nd-button text-sm flex items-center gap-1.5">
+            <Plus className="w-4 h-4" /> new task
           </button>
         </div>
       </div>
 
-      <div className="flex-1 flex gap-8 overflow-x-auto pb-8 mask-fade-bottom">
-        {columns.map((column) => (
-          <div key={column.id} className="w-96 flex flex-col gap-6">
-            <div className="flex items-center justify-between px-4">
-              <div className="flex items-center gap-3">
-                <h3 className="font-display font-bold text-2xl text-deep-plum lowercase italic">{column.title}</h3>
-                <span className="text-[9px] font-mono bg-deep-plum/5 text-deep-plum/40 px-2 py-1 rounded-full border border-deep-plum/10">
-                  {column.tasks.length}
-                </span>
-              </div>
+      <div className="flex-1 flex gap-5 overflow-x-auto">
+        {columns.map((col) => (
+          <div key={col.id} className="w-80 shrink-0 flex flex-col gap-3">
+            <div className="flex items-center gap-2 px-1 mb-1">
+              <h3 className="font-display italic text-ink text-base">{col.title}</h3>
+              <span className="nd-badge text-muted" style={{background:'rgba(22,32,42,0.05)'}}>{col.tasks.length}</span>
             </div>
 
-            <div className="flex-1 glass-panel p-6 space-y-4 overflow-y-auto">
-              {column.tasks.map((task) => (
+            <div className="flex-1 flex flex-col gap-2 min-h-[200px]">
+              {col.tasks.map((task) => (
                 <motion.div
                   key={task.id}
                   layoutId={task.id}
-                  whileHover={{ y: -4 }}
-                  className="bg-white/80 p-6 rounded-3xl shadow-sm border border-white/50 hover:shadow-xl hover:shadow-deep-plum/5 transition-all cursor-grab active:cursor-grabbing group relative"
+                  whileHover={{ y: -2 }}
+                  className="nd-card p-4 group relative"
                 >
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex gap-1.5 p-1.5 bg-black/5 rounded-xl">
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <div className="p-1.5 rounded-lg border border-border/60" style={{background:'rgba(255,255,255,0.5)'}}>
                       {getEnergyIcon(task.energyRequired)}
                     </div>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {column.id !== 'todo' && (
-                        <button onClick={() => updateTaskStatus(task.id, 'todo')} className="p-1.5 hover:bg-black/5 rounded-lg text-soft-grey"><ArrowRight className="w-3 h-3 rotate-180" /></button>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {col.id !== 'todo' && (
+                        <button onClick={() => updateStatus(task.id, 'todo')} className="p-1.5 rounded-lg hover:bg-black/5 text-muted hover:text-ink transition-all" title="move back">
+                          <ArrowRight className="w-3 h-3 rotate-180" />
+                        </button>
                       )}
-                      {column.id !== 'done' && (
-                        <button onClick={() => updateTaskStatus(task.id, column.id === 'todo' ? 'doing' : 'done')} className="p-1.5 hover:bg-black/5 rounded-lg text-soft-grey"><ArrowRight className="w-3 h-3" /></button>
+                      {col.id !== 'done' && (
+                        <button onClick={() => updateStatus(task.id, col.id === 'todo' ? 'doing' : 'done')} className="p-1.5 rounded-lg hover:bg-black/5 text-muted hover:text-ink transition-all" title="move forward">
+                          <ArrowRight className="w-3 h-3" />
+                        </button>
                       )}
+                      <div className="relative">
+                        <button onClick={() => setActiveMenu(activeMenu === task.id ? null : task.id)} className="p-1.5 rounded-lg hover:bg-black/5 text-muted hover:text-ink transition-all">
+                          <MoreHorizontal className="w-3 h-3" />
+                        </button>
+                        <AnimatePresence>
+                          {activeMenu === task.id && (
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.92, y: 6 }}
+                              animate={{ opacity: 1, scale: 1, y: 0 }}
+                              exit={{ opacity: 0, scale: 0.92, y: 6 }}
+                              className="absolute right-0 bottom-full mb-1 w-44 nd-card shadow-xl z-50 p-1"
+                            >
+                              <button onClick={() => saveAsTemplate(task)} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-soft-grey hover:text-ink hover:bg-black/4 rounded-lg transition-all">
+                                <Bookmark className="w-3.5 h-3.5" /> save as template
+                              </button>
+                              <button onClick={() => deleteTask(task.id)} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-soft-grey hover:text-error hover:bg-error/5 rounded-lg transition-all" style={{'--tw-text-opacity':'1'} as any}>
+                                <Trash2 className="w-3.5 h-3.5" /> delete
+                              </button>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
                     </div>
                   </div>
-                  <h4 className="text-base font-medium text-dark-text leading-relaxed tracking-tight">{task.title}</h4>
-                  <div className="mt-4 pt-4 border-t border-black/5 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <button 
-                        onClick={() => updateTaskStatus(task.id, 'done')}
-                        className="px-3 py-1 bg-sage-mist/20 text-forest-green rounded-full text-[9px] font-bold uppercase tracking-widest font-mono hover:bg-sage-mist/40 transition-all"
-                      >
-                        good enough ✹
-                      </button>
-                      <span className="text-[9px] font-mono text-soft-grey opacity-50">{new Date(task.createdAt).toLocaleDateString()}</span>
-                    </div>
-                    <div className="relative">
-                      <button 
-                        onClick={() => setActiveMenu(activeMenu === task.id ? null : task.id)}
-                        className="text-black/10 hover:text-deep-plum transition-colors"
-                      >
-                        <MoreHorizontal className="w-4 h-4" />
-                      </button>
-                      
-                      <AnimatePresence>
-                        {activeMenu === task.id && (
-                          <motion.div
-                            initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                            className="absolute right-0 bottom-full mb-2 w-48 bg-white rounded-2xl shadow-xl border border-black/5 p-2 z-50"
-                          >
-                            <button 
-                              onClick={() => saveAsTemplate(task)}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-bold text-soft-grey hover:text-deep-plum hover:bg-black/5 rounded-xl transition-all font-mono uppercase tracking-widest"
-                            >
-                              <Bookmark className="w-4 h-4" />
-                              save as template
-                            </button>
-                            <button 
-                              onClick={() => deleteTask(task.id)}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-bold text-soft-grey hover:text-terracotta hover:bg-terracotta/5 rounded-xl transition-all font-mono uppercase tracking-widest"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              delete task
-                            </button>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
+
+                  <p className="text-sm text-ink font-medium leading-relaxed mb-3">{task.title}</p>
+
+                  <div className="flex items-center justify-between">
+                    <button
+                      onClick={() => updateStatus(task.id, 'done')}
+                      className="text-[10px] font-mono uppercase tracking-wider px-2.5 py-1 rounded-full transition-all"
+                      style={{background:'rgba(30,122,110,0.08)', color:'var(--color-teal)'}}
+                    >
+                      good enough ✹
+                    </button>
+                    <span className="nd-label text-muted/60">{new Date(task.createdAt).toLocaleDateString('en-GB', {day:'numeric',month:'short'})}</span>
                   </div>
                 </motion.div>
               ))}
-              <button 
-                onClick={() => setShowTemplatePicker({ status: column.id })}
-                className="w-full py-4 border-2 border-dashed border-black/5 rounded-3xl text-black/20 hover:border-deep-plum/20 hover:text-deep-plum/40 hover:bg-white/40 transition-all text-[10px] font-bold font-mono uppercase tracking-widest"
+
+              <button
+                onClick={() => setShowTemplatePicker({ status: col.id })}
+                className="w-full py-3 border border-dashed border-border rounded-xl text-muted hover:border-ink/20 hover:text-soft-grey hover:bg-white/30 transition-all text-xs font-medium"
               >
                 + add task
               </button>
@@ -267,76 +205,72 @@ export default function ProjectSpace() {
         ))}
       </div>
 
-      {/* Template Picker Modal */}
       <AnimatePresence>
         {showTemplatePicker && (
           <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setShowTemplatePicker(null)}
-              className="fixed inset-0 bg-deep-plum/20 backdrop-blur-sm z-[100]"
+              className="fixed inset-0 backdrop-blur-sm z-[100]"
+              style={{background:'rgba(22,32,42,0.25)'}}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              initial={{ opacity: 0, scale: 0.95, y: 16 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="fixed inset-0 m-auto w-[500px] h-fit max-h-[80vh] glass-panel shadow-2xl z-[110] p-8 flex flex-col"
+              exit={{ opacity: 0, scale: 0.95, y: 16 }}
+              transition={{ duration: 0.25, ease: [0.23,1,0.32,1] }}
+              className="fixed inset-0 m-auto w-[440px] h-fit max-h-[80vh] nd-card shadow-2xl z-[110] flex flex-col overflow-hidden"
             >
-              <div className="flex items-center justify-between mb-8">
-                <div className="space-y-1">
-                  <h3 className="text-2xl font-display font-bold text-deep-plum italic">new task</h3>
-                  <p className="text-xs text-soft-grey italic font-display">start fresh or use a template.</p>
+              <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-border/50">
+                <div>
+                  <h3 className="font-display italic text-ink text-lg font-light">new task</h3>
+                  <p className="text-[11px] text-muted font-light">start fresh or use a template.</p>
                 </div>
-                <button onClick={() => setShowTemplatePicker(null)} className="p-2 hover:bg-black/5 rounded-xl transition-colors">
-                  <X className="w-6 h-6 text-soft-grey" />
+                <button onClick={() => setShowTemplatePicker(null)} className="p-1.5 rounded-lg hover:bg-black/5 transition-colors">
+                  <X className="w-4 h-4 text-muted" />
                 </button>
               </div>
 
-              <div className="space-y-6 overflow-y-auto pr-2">
-                <button 
+              <div className="p-5 flex flex-col gap-4 overflow-y-auto">
+                <button
                   onClick={() => addTask(showTemplatePicker.status)}
-                  className="w-full p-6 bg-white/60 border border-black/5 rounded-3xl flex items-center justify-between group hover:border-deep-plum/20 transition-all"
+                  className="flex items-center gap-4 p-4 rounded-xl border border-border/60 hover:border-border hover:bg-white/50 transition-all group text-left"
+                  style={{background:'rgba(255,255,255,0.4)'}}
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-deep-plum/5 rounded-2xl flex items-center justify-center text-deep-plum">
-                      <Plus className="w-6 h-6" />
-                    </div>
-                    <div className="text-left">
-                      <p className="font-bold text-dark-text tracking-tight">blank task</p>
-                      <p className="text-[9px] text-soft-grey uppercase tracking-widest font-mono">start from scratch</p>
-                    </div>
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border border-border/60">
+                    <Plus className="w-4 h-4 text-soft-grey" />
                   </div>
-                  <ArrowRight className="w-5 h-5 text-black/10 group-hover:text-deep-plum transition-colors" />
+                  <div>
+                    <p className="text-sm font-medium text-ink">blank task</p>
+                    <p className="nd-label text-muted">start from scratch</p>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted ml-auto group-hover:text-ink transition-colors" />
                 </button>
 
                 {templates.length > 0 && (
-                  <div className="space-y-4">
-                    <p className="text-[9px] font-bold text-soft-grey uppercase tracking-widest px-2 font-mono">your templates</p>
-                    <div className="space-y-3">
-                      {templates.map((template) => (
-                        <div key={template.id} className="group relative">
+                  <div>
+                    <p className="nd-label text-muted mb-2 px-1">your templates</p>
+                    <div className="flex flex-col gap-2">
+                      {templates.map((t) => (
+                        <div key={t.id} className="group relative flex items-center">
                           <button
-                            onClick={() => addTask(showTemplatePicker.status, template)}
-                            className="w-full p-5 bg-white/40 border border-black/5 rounded-2xl flex items-center justify-between hover:bg-white/80 hover:border-deep-plum/20 transition-all"
+                            onClick={() => addTask(showTemplatePicker.status, t)}
+                            className="flex-1 flex items-center gap-3 p-3.5 rounded-xl border border-border/60 hover:border-border hover:bg-white/50 transition-all text-left"
+                            style={{background:'rgba(255,255,255,0.3)'}}
                           >
-                            <div className="flex items-center gap-4">
-                              <div className="p-2 bg-black/5 rounded-lg">
-                                {getEnergyIcon(template.energyRequired)}
-                              </div>
-                              <div className="text-left">
-                                <p className="text-sm font-bold text-dark-text tracking-tight">{template.title}</p>
-                                <p className="text-[9px] text-soft-grey italic font-display">{template.energyRequired} energy</p>
-                              </div>
+                            <div className="p-1.5 rounded-lg border border-border/50 bg-white/50">
+                              {getEnergyIcon(t.energyRequired)}
                             </div>
-                            <ArrowRight className="w-4 h-4 text-black/5 group-hover:text-deep-plum transition-colors" />
+                            <div>
+                              <p className="text-sm font-medium text-ink">{t.title}</p>
+                              <p className="nd-label text-muted">{t.energyRequired} energy</p>
+                            </div>
+                            <ArrowRight className="w-3.5 h-3.5 text-muted ml-auto" />
                           </button>
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); deleteTemplate(template.id); }}
-                            className="absolute right-12 top-1/2 -translate-y-1/2 p-2 text-black/5 hover:text-terracotta opacity-0 group-hover:opacity-100 transition-all"
+                          <button
+                            onClick={(e) => { e.stopPropagation(); deleteTemplate(t.id); }}
+                            className="absolute right-3 opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-muted hover:text-error transition-all"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       ))}
@@ -351,6 +285,3 @@ export default function ProjectSpace() {
     </div>
   );
 }
-
-
-

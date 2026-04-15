@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, X, Heart, Zap, CloudRain, Sun } from 'lucide-react';
+import { X, CloudRain, Sun, Heart, Zap } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export default function DailyCheckIn({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
@@ -8,10 +8,10 @@ export default function DailyCheckIn({ isOpen, onClose }: { isOpen: boolean, onC
   const [mood, setMood] = useState<string | null>(null);
 
   const moods = [
-    { id: 'foggy', icon: CloudRain, label: 'foggy', color: 'text-soft-grey' },
-    { id: 'bright', icon: Sun, label: 'bright', color: 'text-terracotta' },
-    { id: 'low', icon: Heart, label: 'low energy', color: 'text-dusty-blush' },
-    { id: 'wired', icon: Zap, label: 'wired', color: 'text-deep-plum' },
+    { id: 'foggy', icon: CloudRain, label: 'foggy', sub: 'mind is elsewhere', color: 'var(--color-muted)' },
+    { id: 'bright', icon: Sun, label: 'bright', sub: 'feeling capable', color: 'var(--color-amber)' },
+    { id: 'low', icon: Heart, label: 'low energy', sub: 'surviving for now', color: 'var(--color-blush-deep)' },
+    { id: 'wired', icon: Zap, label: 'wired', sub: 'hyper and restless', color: 'var(--color-teal)' },
   ];
 
   return (
@@ -22,48 +22,53 @@ export default function DailyCheckIn({ isOpen, onClose }: { isOpen: boolean, onC
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-deep-plum/40 backdrop-blur-md z-[100]"
+            className="fixed inset-0 backdrop-blur-sm z-[100]"
+            style={{ background: 'rgba(22,32,42,0.3)' }}
+            onClick={onClose}
           />
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            initial={{ opacity: 0, scale: 0.95, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="fixed inset-0 m-auto w-[500px] h-[600px] glass-panel shadow-2xl z-[110] flex flex-col overflow-hidden"
+            exit={{ opacity: 0, scale: 0.95, y: 16 }}
+            transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+            className="fixed inset-0 m-auto w-[440px] max-h-[580px] nd-card shadow-2xl z-[110] flex flex-col overflow-hidden"
           >
-            <div className="p-8 flex justify-end">
-              <button onClick={onClose} className="p-2 hover:bg-black/5 rounded-xl transition-colors">
-                <X className="w-6 h-6 text-soft-grey" />
+            <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-border/50">
+              <div>
+                <p className="nd-label text-muted">step {step} of 2</p>
+              </div>
+              <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-black/5 transition-colors">
+                <X className="w-4 h-4 text-muted" />
               </button>
             </div>
 
-            <div className="flex-1 px-12 pb-12 flex flex-col items-center text-center space-y-12">
-              <div className="w-20 h-20 bg-deep-plum rounded-[32px] flex items-center justify-center text-warm-cream shadow-xl">
-                <Sparkles className="w-10 h-10" />
-              </div>
-
+            <div className="flex-1 px-6 py-6 flex flex-col overflow-hidden">
               <AnimatePresence mode="wait">
                 {step === 1 && (
                   <motion.div
                     key="step1"
-                    initial={{ opacity: 0, x: 20 }}
+                    initial={{ opacity: 0, x: 16 }}
                     animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    className="space-y-8"
+                    exit={{ opacity: 0, x: -16 }}
+                    transition={{ duration: 0.25 }}
+                    className="flex flex-col gap-6"
                   >
-                    <div className="space-y-4">
-                      <h3 className="text-3xl font-display font-bold text-deep-plum tracking-tight">how's the weather inside?</h3>
-                      <p className="text-soft-grey italic font-display">no judgment. just noticing.</p>
+                    <div>
+                      <h3 className="font-display font-light text-2xl text-ink mb-1.5">how's the weather inside?</h3>
+                      <p className="text-sm text-soft-grey font-light">no judgment. just noticing.</p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-3">
                       {moods.map((m) => (
                         <button
                           key={m.id}
                           onClick={() => { setMood(m.id); setStep(2); }}
-                          className="p-6 bg-white/40 border border-white/60 rounded-3xl hover:bg-white/60 transition-all flex flex-col items-center gap-3 group"
+                          className="p-5 rounded-xl border border-border/60 hover:border-border text-left transition-all group"
+                          style={{ background: 'rgba(255,255,255,0.5)' }}
                         >
-                          <m.icon className={cn("w-8 h-8 transition-transform group-hover:scale-110", m.color)} />
-                          <span className="text-[10px] font-bold uppercase tracking-widest text-soft-grey font-mono">{m.label}</span>
+                          <m.icon className="w-5 h-5 mb-3 transition-transform group-hover:scale-110" style={{ color: m.color }} />
+                          <p className="text-sm font-medium text-ink">{m.label}</p>
+                          <p className="text-[11px] text-muted mt-0.5">{m.sub}</p>
                         </button>
                       ))}
                     </div>
@@ -73,27 +78,39 @@ export default function DailyCheckIn({ isOpen, onClose }: { isOpen: boolean, onC
                 {step === 2 && (
                   <motion.div
                     key="step2"
-                    initial={{ opacity: 0, x: 20 }}
+                    initial={{ opacity: 0, x: 16 }}
                     animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    className="space-y-8 w-full"
+                    exit={{ opacity: 0, x: -16 }}
+                    transition={{ duration: 0.25 }}
+                    className="flex flex-col gap-6"
                   >
-                    <div className="space-y-4">
-                      <h3 className="text-3xl font-display font-bold text-deep-plum tracking-tight">what's the one thing?</h3>
-                      <p className="text-soft-grey italic font-display">if you only did one thing today to feel okay, what would it be?</p>
+                    <div>
+                      <h3 className="font-display font-light text-2xl text-ink mb-1.5">what's the one thing?</h3>
+                      <p className="text-sm text-soft-grey font-light">if you only did one thing today to feel okay — what would it be?</p>
                     </div>
 
-                    <textarea 
-                      placeholder="e.g., drink water, reply to mom..."
-                      className="w-full h-32 bg-white/40 border-none rounded-3xl p-6 text-lg focus:ring-2 focus:ring-deep-plum/10 resize-none placeholder:text-soft-grey/30 shadow-inner font-display italic"
+                    <textarea
+                      autoFocus
+                      placeholder="e.g. drink water, reply to that one message..."
+                      className="nd-input resize-none text-sm font-display italic font-light"
+                      rows={4}
+                      style={{ lineHeight: '1.6' }}
                     />
 
-                    <button 
-                      onClick={onClose}
-                      className="w-full florr-button py-4 text-lg"
-                    >
-                      set the tone ✹
-                    </button>
+                    <div className="flex gap-2.5">
+                      <button
+                        onClick={() => setStep(1)}
+                        className="nd-button-ghost flex-1 text-sm"
+                      >
+                        back
+                      </button>
+                      <button
+                        onClick={onClose}
+                        className="nd-button flex-1 text-sm"
+                      >
+                        set the tone ✹
+                      </button>
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>

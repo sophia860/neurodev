@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Languages, ArrowRight, Sparkles, MessageSquare, ShieldCheck } from 'lucide-react';
+import { Languages, ArrowRight, Sparkles, ShieldCheck } from 'lucide-react';
 import { getFloResponse } from '../services/gemini';
 import { cn } from '../lib/utils';
 
@@ -13,96 +13,81 @@ export default function WorkplaceTranslator() {
   const handleTranslate = async () => {
     if (!input.trim()) return;
     setIsTranslating(true);
-    
-    const prompt = mode === 'decode' 
-      ? `Decode this workplace communication. What are they actually saying? What is the subtext? How should I feel about it? Keep it warm and supportive. Text: "${input}"`
-      : `Help me write this workplace communication. I want to say: "${input}". Make it professional but authentic, and neurodivergent-friendly.`;
-
+    const prompt = mode === 'decode'
+      ? `Decode this workplace communication. What are they actually saying? What is the subtext? Keep it warm and supportive. Text: "${input}"`
+      : `Help me write this workplace communication professionally but authentically. I want to say: "${input}". Make it neurodivergent-friendly.`;
     try {
       const response = await getFloResponse([{ role: 'user', text: prompt }]);
       setTranslation(response);
-    } catch (error) {
-      console.error('Translation error:', error);
+    } catch (e) {
+      console.error('Translation error:', e);
     } finally {
       setIsTranslating(false);
     }
   };
 
   return (
-    <div className="florr-card p-8 space-y-6">
+    <div className="nd-card p-5 flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-lavender-grey/30 text-deep-plum rounded-xl">
-            <Languages className="w-5 h-5" />
-          </div>
-          <h3 className="text-xl font-bold text-deep-plum font-display italic">workplace translator</h3>
+        <div className="flex items-center gap-2">
+          <Languages className="w-4 h-4 text-soft-grey" />
+          <h3 className="font-display italic text-ink text-base">translator</h3>
         </div>
-        <div className="flex bg-black/5 p-1 rounded-xl">
-          <button 
-            onClick={() => setMode('decode')}
-            className={cn(
-              "px-4 py-1.5 text-[9px] font-bold rounded-lg transition-all font-mono uppercase tracking-widest",
-              mode === 'decode' ? "bg-white text-deep-plum shadow-sm" : "text-soft-grey"
-            )}
-          >
-            decode
-          </button>
-          <button 
-            onClick={() => setMode('encode')}
-            className={cn(
-              "px-4 py-1.5 text-[9px] font-bold rounded-lg transition-all font-mono uppercase tracking-widest",
-              mode === 'encode' ? "bg-white text-deep-plum shadow-sm" : "text-soft-grey"
-            )}
-          >
-            encode
-          </button>
+        <div className="flex items-center gap-1 p-0.5 rounded-lg border border-border/60" style={{background:'rgba(255,255,255,0.5)'}}>
+          {(['decode', 'encode'] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => setMode(m)}
+              className={cn(
+                "px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                mode === m ? "bg-ink text-canvas shadow-sm" : "text-soft-grey hover:text-ink"
+              )}
+            >
+              {m}
+            </button>
+          ))}
         </div>
       </div>
 
-      <div className="space-y-4">
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder={mode === 'decode' ? "paste that confusing email here..." : "what do you want to say?"}
-          className="w-full h-32 bg-black/5 border-none rounded-2xl p-4 text-sm focus:ring-2 focus:ring-deep-plum/10 resize-none placeholder:text-soft-grey/50 font-display italic"
-        />
-        
-        <button 
-          onClick={handleTranslate}
-          disabled={!input.trim() || isTranslating}
-          className="w-full florr-button flex items-center justify-center gap-2"
-        >
-          {isTranslating ? (
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-            >
-              <Sparkles className="w-5 h-5" />
-            </motion.div>
-          ) : (
-            <>
-              <span>{mode === 'decode' ? 'decode subtext' : 'generate script'}</span>
-              <ArrowRight className="w-4 h-4" />
-            </>
-          )}
-        </button>
-      </div>
+      <textarea
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        placeholder={mode === 'decode' ? "paste that confusing email here..." : "what do you want to say?"}
+        className="nd-input resize-none text-sm font-display italic font-light"
+        rows={3}
+      />
+
+      <button
+        onClick={handleTranslate}
+        disabled={!input.trim() || isTranslating}
+        className="nd-button text-sm flex items-center justify-center gap-2"
+      >
+        {isTranslating ? (
+          <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}>
+            <Sparkles className="w-4 h-4" />
+          </motion.div>
+        ) : (
+          <>
+            <span>{mode === 'decode' ? 'decode subtext' : 'generate script'}</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </>
+        )}
+      </button>
 
       <AnimatePresence>
         {translation && (
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            className="p-6 bg-sage-mist/20 border border-sage-mist/30 rounded-2xl space-y-3"
+            exit={{ opacity: 0, y: 8 }}
+            className="p-4 rounded-xl border"
+            style={{ background: 'rgba(208,228,210,0.2)', borderColor: 'rgba(184,212,187,0.4)' }}
           >
-            <div className="flex items-center gap-2 text-forest-green">
-              <ShieldCheck className="w-4 h-4" />
-              <span className="text-[9px] font-bold uppercase tracking-widest font-mono">flo's take</span>
+            <div className="flex items-center gap-1.5 mb-2">
+              <ShieldCheck className="w-3.5 h-3.5" style={{ color: 'var(--color-teal)' }} />
+              <span className="nd-label" style={{ color: 'var(--color-teal)' }}>flo's take</span>
             </div>
-            <p className="text-sm text-dark-text leading-relaxed italic font-display">
-              {translation}
-            </p>
+            <p className="text-[12px] text-ink leading-relaxed font-display italic font-light">{translation}</p>
           </motion.div>
         )}
       </AnimatePresence>

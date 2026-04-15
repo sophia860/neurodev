@@ -1,9 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, MoveHorizontal as MoreHorizontal, User, Mail, Phone, Calendar, ArrowRight, CircleCheck as CheckCircle2, Clock, X } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Client } from '../types';
-import { db, useAuth, handleFirestoreError, OperationType, collection, onSnapshot, query, addDoc, doc, updateDoc, deleteDoc } from '../services/firebase';
+import { db, useAuth, handleFirestoreError, OperationType, collection, onSnapshot, query, addDoc, doc, deleteDoc } from '../services/firebase';
+
+const colorPalette = [
+  { bg: 'rgba(208,228,210,0.4)', color: 'var(--color-teal)' },
+  { bg: 'rgba(232,213,204,0.4)', color: 'var(--color-amber)' },
+  { bg: 'rgba(228,224,216,0.5)', color: 'var(--color-soft-grey)' },
+  { bg: 'rgba(240,228,210,0.4)', color: 'var(--color-amber-warm)' },
+  { bg: 'rgba(208,228,220,0.4)', color: 'var(--color-success)' },
+];
 
 export default function ClientSpace() {
   const { user } = useAuth();
@@ -13,225 +21,143 @@ export default function ClientSpace() {
 
   useEffect(() => {
     if (!user) return;
-
     const path = `users/${user.uid}/clients`;
-    const q = query(collection(db, path));
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const docs = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Client[];
+    const unsubscribe = onSnapshot(query(collection(db, path)), (snapshot) => {
+      const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as Client[];
       setClients(docs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, path);
-    });
-
+    }, (e) => handleFirestoreError(e, OperationType.LIST, path));
     return () => unsubscribe();
   }, [user]);
 
-  const handleAddClient = async () => {
+  const handleAdd = async () => {
     if (!user || !newClient.name) return;
-    const colors = ['bg-blue-100', 'bg-sage-100', 'bg-amber-100', 'bg-pink-100', 'bg-purple-100'];
-    const textColors = ['text-blue-700', 'text-sage-700', 'text-amber-700', 'text-pink-700', 'text-purple-700'];
-    const idx = clients.length % colors.length;
-    
+    const idx = clients.length % colorPalette.length;
     const path = `users/${user.uid}/clients`;
     try {
       await addDoc(collection(db, path), {
-        userId: user.uid,
-        name: newClient.name,
-        type: newClient.type || 'client',
-        rate: newClient.rate || 'tbd',
-        status: 'active',
-        color: colors[idx],
-        textColor: textColors[idx],
+        userId: user.uid, name: newClient.name, type: newClient.type || 'client',
+        rate: newClient.rate || 'tbd', status: 'active',
         initials: newClient.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(),
         createdAt: new Date().toISOString()
       });
       setIsAdding(false);
       setNewClient({ name: '', type: '', rate: '' });
-    } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, path);
-    }
+    } catch (e) { handleFirestoreError(e, OperationType.CREATE, path); }
   };
 
-  const deleteClient = async (clientId: string) => {
+  const deleteClient = async (id: string) => {
     if (!user) return;
-    const path = `users/${user.uid}/clients/${clientId}`;
-    try {
-      await deleteDoc(doc(db, path));
-    } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, path);
-    }
+    const path = `users/${user.uid}/clients/${id}`;
+    try { await deleteDoc(doc(db, path)); }
+    catch (e) { handleFirestoreError(e, OperationType.DELETE, path); }
   };
 
   return (
-    <div className="h-full flex flex-col space-y-8">
+    <div className="max-w-5xl mx-auto pb-16 space-y-8">
       <div className="flex items-end justify-between">
-        <div className="space-y-2">
-          <h2 className="text-6xl font-display font-bold text-deep-plum tracking-tighter">clients</h2>
-          <p className="text-soft-grey italic text-lg font-display">managing your partnerships with care.</p>
+        <div>
+          <h2 className="font-display font-light text-4xl text-ink mb-1.5">clients.</h2>
+          <p className="text-soft-grey italic font-display font-light">managing your partnerships with care.</p>
         </div>
-        <button onClick={() => setIsAdding(true)} className="florr-button flex items-center gap-2">
-          <Plus className="w-5 h-5" />
-          <span>add client</span>
+        <button onClick={() => setIsAdding(true)} className="nd-button text-sm flex items-center gap-1.5">
+          <Plus className="w-4 h-4" /> add client
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {clients.length === 0 ? (
-          <div className="col-span-full p-12 text-center opacity-30 italic font-display">no clients yet.</div>
-        ) : (
-          clients.map((client) => (
-            <motion.div
-              key={client.id}
-              layoutId={client.id}
-              whileHover={{ y: -4 }}
-              className="florr-card p-8 group hover:shadow-xl transition-all"
-            >
-              <div className="flex justify-between items-start mb-6">
-                <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-display font-bold", client.color, client.textColor)}>
-                  {client.initials}
+      {clients.length === 0 ? (
+        <div className="nd-card p-12 text-center">
+          <p className="text-soft-grey font-display italic font-light">no clients yet. add your first one.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {clients.map((client, i) => {
+            const palette = colorPalette[i % colorPalette.length];
+            return (
+              <motion.div
+                key={client.id}
+                whileHover={{ y: -2 }}
+                className="nd-card p-5 group"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center font-display font-light text-base"
+                    style={{ background: palette.bg, color: palette.color }}>
+                    {client.initials}
+                  </div>
+                  <button
+                    onClick={() => deleteClient(client.id)}
+                    className="p-1.5 opacity-0 group-hover:opacity-100 rounded-lg text-muted hover:text-error hover:bg-error/5 transition-all"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
                 </div>
-                <button 
-                  onClick={() => deleteClient(client.id)}
-                  className="p-2 hover:bg-red-50 text-soft-grey hover:text-red-500 rounded-xl transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
 
-              <div className="space-y-1 mb-6">
-                <h3 className="text-2xl font-display font-bold text-deep-plum tracking-tight">{client.name}</h3>
-                <p className="text-sm text-soft-grey font-medium font-display italic">{client.type}</p>
-              </div>
-
-              <div className="flex items-center justify-between pt-6 border-t border-black/5">
-                <div className="flex flex-col">
-                  <span className="text-[9px] font-bold text-soft-grey uppercase tracking-widest font-mono">rate</span>
-                  <span className="text-sm font-bold text-forest-green font-mono">{client.rate}</span>
+                <div className="mb-4">
+                  <h3 className="font-display text-lg text-ink font-light tracking-tight mb-0.5">{client.name}</h3>
+                  <p className="text-sm text-soft-grey font-light italic">{client.type}</p>
                 </div>
-                <div className="flex flex-col items-end">
-                  <span className="text-[9px] font-bold text-soft-grey uppercase tracking-widest font-mono">status</span>
-                  <span className={cn(
-                    "text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-lg font-mono",
-                    client.status === 'active' ? "bg-sage-mist/30 text-forest-green" : "bg-amber-100 text-amber-700"
-                  )}>
+
+                <div className="flex items-center justify-between pt-4 border-t border-border/50">
+                  <div>
+                    <p className="nd-label text-muted mb-0.5">rate</p>
+                    <p className="text-sm font-mono font-bold text-ink">{client.rate}</p>
+                  </div>
+                  <span
+                    className="nd-badge rounded-full"
+                    style={client.status === 'active'
+                      ? { background: 'rgba(30,122,110,0.1)', color: 'var(--color-teal)' }
+                      : { background: 'rgba(196,134,10,0.1)', color: 'var(--color-warning)' }
+                    }
+                  >
                     {client.status}
                   </span>
                 </div>
-              </div>
-            </motion.div>
-          ))
-        )}
-      </div>
-
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h3 className="text-2xl font-display font-bold text-deep-plum italic">active tasks</h3>
-          <button className="text-[10px] font-bold text-soft-grey hover:text-deep-plum uppercase tracking-widest transition-colors font-mono">view board</button>
+              </motion.div>
+            );
+          })}
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between px-4">
-              <span className="text-[9px] font-bold text-soft-grey uppercase tracking-widest font-mono">to do</span>
-              <span className="text-[9px] font-mono bg-black/5 px-2 py-1 rounded-full">0</span>
-            </div>
-            <div className="glass-panel p-4 space-y-3 min-h-[100px] flex items-center justify-center text-xs opacity-30 italic">
-              no tasks yet
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between px-4">
-              <span className="text-[9px] font-bold text-soft-grey uppercase tracking-widest font-mono">in progress</span>
-              <span className="text-[9px] font-mono bg-black/5 px-2 py-1 rounded-full">0</span>
-            </div>
-            <div className="glass-panel p-4 space-y-3 min-h-[100px] flex items-center justify-center text-xs opacity-30 italic">
-              no tasks yet
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between px-4">
-              <span className="text-[9px] font-bold text-soft-grey uppercase tracking-widest font-mono">done</span>
-              <span className="text-[9px] font-mono bg-black/5 px-2 py-1 rounded-full">0</span>
-            </div>
-            <div className="glass-panel p-4 space-y-3 min-h-[100px] flex items-center justify-center text-xs opacity-30 italic">
-              no tasks yet
-            </div>
-          </div>
-        </div>
-      </div>
+      )}
 
       <AnimatePresence>
         {isAdding && (
           <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setIsAdding(false)} className="fixed inset-0 backdrop-blur-sm z-[100]"
+              style={{ background: 'rgba(22,32,42,0.25)' }} />
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsAdding(false)}
-              className="fixed inset-0 bg-deep-plum/40 backdrop-blur-md z-[100]"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              initial={{ opacity: 0, scale: 0.95, y: 16 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="fixed inset-0 m-auto w-[450px] h-fit glass-panel shadow-2xl z-[110] p-10 space-y-8"
+              exit={{ opacity: 0, scale: 0.95, y: 16 }}
+              transition={{ duration: 0.25, ease: [0.23,1,0.32,1] }}
+              className="fixed inset-0 m-auto w-[420px] h-fit nd-card shadow-2xl z-[110]"
             >
-              <h3 className="text-3xl font-display font-bold text-deep-plum italic">add a client</h3>
-              
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-[9px] font-bold text-soft-grey uppercase tracking-widest font-mono">client name</label>
-                  <input
-                    type="text"
-                    value={newClient.name}
-                    onChange={(e) => setNewClient({ ...newClient, name: e.target.value })}
-                    placeholder="e.g., bloom studio"
-                    className="w-full bg-black/5 border-none rounded-2xl px-6 py-4 text-lg focus:ring-2 focus:ring-deep-plum/10 transition-all font-display italic"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[9px] font-bold text-soft-grey uppercase tracking-widest font-mono">role type</label>
-                    <input
-                      type="text"
-                      value={newClient.type}
-                      onChange={(e) => setNewClient({ ...newClient, type: e.target.value })}
-                      placeholder="e.g., social media pa"
-                      className="w-full bg-black/5 border-none rounded-2xl px-6 py-4 text-sm focus:ring-2 focus:ring-deep-plum/10 transition-all font-display italic"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[9px] font-bold text-soft-grey uppercase tracking-widest font-mono">rate</label>
-                    <input
-                      type="text"
-                      value={newClient.rate}
-                      onChange={(e) => setNewClient({ ...newClient, rate: e.target.value })}
-                      placeholder="e.g., £25/hr"
-                      className="w-full bg-black/5 border-none rounded-2xl px-6 py-4 text-sm focus:ring-2 focus:ring-deep-plum/10 transition-all font-mono"
-                    />
-                  </div>
-                </div>
+              <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-border/50">
+                <h3 className="font-display italic text-ink text-lg font-light">add a client</h3>
+                <button onClick={() => setIsAdding(false)} className="p-1.5 rounded-lg hover:bg-black/5 transition-colors">
+                  <X className="w-4 h-4 text-muted" />
+                </button>
               </div>
-
-              <div className="flex gap-4 pt-4">
-                <button 
-                  onClick={() => setIsAdding(false)}
-                  className="flex-1 py-4 bg-black/5 text-soft-grey rounded-2xl font-bold hover:bg-black/10 transition-all font-mono uppercase tracking-widest text-[10px]"
-                >
-                  cancel
-                </button>
-                <button 
-                  onClick={handleAddClient}
-                  className="flex-1 florr-button py-4 text-lg"
-                >
-                  add client
-                </button>
+              <div className="p-6 space-y-4">
+                <div>
+                  <p className="nd-label text-muted mb-1.5">client name</p>
+                  <input type="text" value={newClient.name} onChange={(e) => setNewClient({ ...newClient, name: e.target.value })}
+                    placeholder="e.g. bloom studio" className="nd-input text-sm" autoFocus />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="nd-label text-muted mb-1.5">role type</p>
+                    <input type="text" value={newClient.type} onChange={(e) => setNewClient({ ...newClient, type: e.target.value })}
+                      placeholder="e.g. social media pa" className="nd-input text-sm" />
+                  </div>
+                  <div>
+                    <p className="nd-label text-muted mb-1.5">rate</p>
+                    <input type="text" value={newClient.rate} onChange={(e) => setNewClient({ ...newClient, rate: e.target.value })}
+                      placeholder="e.g. £25/hr" className="nd-input text-sm font-mono" />
+                  </div>
+                </div>
+                <div className="flex gap-2.5 pt-2">
+                  <button onClick={() => setIsAdding(false)} className="nd-button-ghost flex-1 text-sm">cancel</button>
+                  <button onClick={handleAdd} disabled={!newClient.name} className="nd-button flex-1 text-sm">add client</button>
+                </div>
               </div>
             </motion.div>
           </>
