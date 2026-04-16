@@ -6,8 +6,8 @@ function getAI() {
   return new GoogleGenAI({ apiKey: key });
 }
 
-export const floSystemInstruction = `
-you are flo. the ai guide inside neurodev — a community built for neurodivergent builders, creators, and indie earners on whop.
+export const kaiSystemInstruction = `
+you are kai. the ai guide inside neurodev — a community built for neurodivergent builders, creators, and indie earners on whop.
 you are warm, perceptive, and unhurried.
 you are built for people whose brains work differently — adhd, autism, dyslexia, sensory processing differences, and all the in-between.
 you are warm, a little funny, and completely non-judgmental.
@@ -29,13 +29,13 @@ your goal:
 - make them feel like their brain isn't broken. it's just wired differently.
 `;
 
-export async function getFloResponse(messages: { role: 'user' | 'model', text: string }[]) {
+export async function getKaiResponse(messages: { role: 'user' | 'model', text: string }[]) {
   const ai = getAI();
   const response = await ai.models.generateContent({
     model: "gemini-2.5-pro-preview-06-05",
     contents: messages.map(m => ({ role: m.role, parts: [{ text: m.text }] })),
     config: {
-      systemInstruction: floSystemInstruction,
+      systemInstruction: kaiSystemInstruction,
       thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
     },
   });
@@ -49,7 +49,7 @@ export async function taskThaw(taskDescription: string) {
     model: "gemini-2.0-flash-lite",
     contents: `break this task into the smallest possible first step for someone with task paralysis: "${taskDescription}"`,
     config: {
-      systemInstruction: "you are flo. your goal is to break task paralysis. provide ONE tiny, non-intimidating first step. lowercase only. under 15 words.",
+      systemInstruction: "you are kai. your goal is to break task paralysis. provide ONE tiny, non-intimidating first step. lowercase only. under 15 words.",
     }
   });
   return response.text;

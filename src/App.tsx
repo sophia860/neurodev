@@ -18,7 +18,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { cn } from './lib/utils';
-import Flo from './components/Flo';
+import Kai from './components/Kai';
 import DumpPad from './components/DumpPad';
 import ProjectSpace from './components/ProjectSpace';
 import FocusSpace from './components/FocusSpace';
@@ -488,7 +488,7 @@ function AppContent() {
                               <div className="space-y-3">
                                 {!focusMode && (
                                   <p className="text-sm text-soft-grey leading-relaxed font-light">
-                                    describe your day and flo will turn it into a visual rhythm.
+                                     describe your day and kai will turn it into a visual rhythm.
                                   </p>
                                 )}
                                 <textarea
@@ -578,7 +578,7 @@ function AppContent() {
           </AnimatePresence>
         </div>
 
-        <Flo />
+        <Kai />
 
         <button
           onClick={() => setShowLanding(true)}

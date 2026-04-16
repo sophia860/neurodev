@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Send, X, MessageCircle } from 'lucide-react';
-import { getFloResponse } from '../services/gemini';
+import { getKaiResponse } from '../services/gemini';
 import { ChatMessage } from '../types';
 import { cn } from '../lib/utils';
 import { db, handleFirestoreError, OperationType, useAuth, collection, addDoc, onSnapshot, query, orderBy, limit } from '../services/firebase';
 
-export default function Flo() {
+export default function Kai() {
   const [isOpen, setIsOpen] = useState(false);
   const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -20,7 +20,7 @@ export default function Flo() {
     const q = query(collection(db, path), orderBy('timestamp', 'asc'), limit(50));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const msgs = snapshot.docs.map(d => d.data() as ChatMessage);
-      setMessages(msgs.length === 0 ? [{ role: 'model', text: "hey. i'm flo. i'm here to help you figure out how you work best. what's been making work feel really hard lately?", timestamp: new Date().toISOString() }] : msgs);
+      setMessages(msgs.length === 0 ? [{ role: 'model', text: "hey. i'm kai. i'm here to help you figure out how you work best. what's been making work feel really hard lately?", timestamp: new Date().toISOString() }] : msgs);
     }, (e) => handleFirestoreError(e, OperationType.LIST, path));
     return () => unsubscribe();
   }, [user]);
@@ -38,7 +38,7 @@ export default function Flo() {
       setInput('');
       setIsTyping(true);
       const history = messages.concat(userMsg).map(m => ({ role: m.role, text: m.text }));
-      const response = await getFloResponse(history);
+      const response = await getKaiResponse(history);
       await addDoc(collection(db, path), { role: 'model', text: response, timestamp: new Date().toISOString() });
     } catch (e) {
       handleFirestoreError(e, OperationType.WRITE, path);
@@ -55,7 +55,7 @@ export default function Flo() {
         whileTap={{ scale: 0.96 }}
         className="fixed bottom-20 right-8 w-14 h-14 rounded-2xl shadow-xl flex items-center justify-center z-50"
         style={{ background: 'var(--color-teal)' }}
-        title="talk to flo"
+        title="talk to kai"
       >
         <MessageCircle className="w-6 h-6 text-canvas" />
       </motion.button>
@@ -76,7 +76,7 @@ export default function Flo() {
                   <MessageCircle className="w-4 h-4 text-canvas" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-display italic text-ink">flo</h3>
+                  <h3 className="text-sm font-display italic text-ink">kai</h3>
                   <div className="flex items-center gap-1.5">
                     <div className="w-1.5 h-1.5 rounded-full bg-teal animate-pulse" style={{ background: 'var(--color-teal)' }} />
                     <span className="nd-label" style={{ color: 'var(--color-teal)' }}>perceiving</span>
@@ -134,7 +134,7 @@ export default function Flo() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                  placeholder="talk to flo..."
+                  placeholder="talk to kai..."
                   className="nd-input flex-1 text-sm py-2.5"
                   disabled={isTyping}
                 />
@@ -147,7 +147,7 @@ export default function Flo() {
                   <Send className="w-3.5 h-3.5 text-canvas" />
                 </button>
               </div>
-              <p className="reassurance-line text-center mt-2.5">flo is unhurried. take your time.</p>
+              <p className="reassurance-line text-center mt-2.5">kai is unhurried. take your time.</p>
             </div>
           </motion.div>
         )}
