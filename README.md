@@ -10,7 +10,7 @@ Neurodev is a Whop-native product brand selling neuroscience-powered software to
 
 Built for the developer who always knew something was different about how their brain works — and is finally ready to use that as an advantage.
 
-🔗 **[Join Neurodev on Whop →](https://whop.com/neurodev)**
+🔗 **[Join Neurodev on Whop →](https://whop.com/joined/neurodev-b764/)**
 
 ---
 
