@@ -1,8 +1,9 @@
 {
-  "name": "react-example",
+  "name": "neurodev",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "description": "Neurodev — neuroscience-powered software tools for developers who think differently. Built for Whop.",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
     "build": "vite build",
