@@ -60,7 +60,7 @@ export default function EnergyTracker({ currentEnergy = 100 }: { currentEnergy?:
       </div>
 
       <p className="text-[11px] text-muted leading-relaxed font-light italic font-display">
-        flo uses this to match tasks to your capacity. no pressure to be at 100.
+        kai uses this to match tasks to your capacity. no pressure to be at 100.
       </p>
     </div>
   );

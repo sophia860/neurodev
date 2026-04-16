@@ -48,7 +48,7 @@
     },
     "ChatMessage": {
       "title": "Chat Message",
-      "description": "A message in the conversation with Flo",
+      "description": "A message in the conversation with Kai",
       "type": "object",
       "properties": {
         "role": { "type": "string", "enum": ["user", "model"] },
@@ -124,7 +124,7 @@
     },
     "/users/{userId}/chats/{messageId}": {
       "schema": "ChatMessage",
-      "description": "User chat history with Flo"
+      "description": "User chat history with Kai"
     },
     "/users/{userId}/invoices/{invoiceId}": {
       "schema": "Invoice",

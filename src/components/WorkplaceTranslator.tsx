@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Languages, ArrowRight, Sparkles, ShieldCheck } from 'lucide-react';
-import { getFloResponse } from '../services/gemini';
+import { getKaiResponse } from '../services/gemini';
 import { cn } from '../lib/utils';
 
 export default function WorkplaceTranslator() {
@@ -17,7 +17,7 @@ export default function WorkplaceTranslator() {
       ? `Decode this workplace communication. What are they actually saying? What is the subtext? Keep it warm and supportive. Text: "${input}"`
       : `Help me write this workplace communication professionally but authentically. I want to say: "${input}". Make it neurodivergent-friendly.`;
     try {
-      const response = await getFloResponse([{ role: 'user', text: prompt }]);
+      const response = await getKaiResponse([{ role: 'user', text: prompt }]);
       setTranslation(response);
     } catch (e) {
       console.error('Translation error:', e);
@@ -85,7 +85,7 @@ export default function WorkplaceTranslator() {
           >
             <div className="flex items-center gap-1.5 mb-2">
               <ShieldCheck className="w-3.5 h-3.5" style={{ color: 'var(--color-teal)' }} />
-              <span className="nd-label" style={{ color: 'var(--color-teal)' }}>flo's take</span>
+              <span className="nd-label" style={{ color: 'var(--color-teal)' }}>kai's take</span>
             </div>
             <p className="text-[12px] text-ink leading-relaxed font-display italic font-light">{translation}</p>
           </motion.div>

@@ -162,7 +162,7 @@ export default function JobScout() {
                   style={{ background: 'rgba(232,213,204,0.15)', borderColor: 'rgba(212,184,172,0.25)' }}>
                   <div className="flex items-center gap-1.5 mb-2">
                     <Sparkles className="w-3 h-3" style={{color:'var(--color-amber)'}} />
-                    <span className="nd-label" style={{color:'var(--color-amber)'}}>flo's read</span>
+                    <span className="nd-label" style={{color:'var(--color-amber)'}}>kai's read</span>
                   </div>
                   <p className="text-[12px] text-soft-grey leading-relaxed font-display italic font-light">"{job.fit}"</p>
                 </div>
